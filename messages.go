@@ -13,6 +13,16 @@ import (
 
 type ClientBody struct {
     Request     string `json:"request,omitempty"`
+    Room        int64  `json:"room,omitempty"`
+    Ptype       string `json:"ptype,omitempty"`
+    Display     string `json:"display,omitempty"`
+    Audio   bool   `json:"audio,omitempty"`
+    Video   bool   `json:"video,omitempty"`
+}
+
+type Jsep struct {
+    Type    string `json:"type,omitempty"`
+    Sdp     string `json:"sdp,omitempty"`
 }
 
 // WebSocket message send to janus.
@@ -35,6 +45,27 @@ type ServerMsg struct {
     Data            ServerData `json:"data,omitempty"`
     SessionId       int `json:"session_id,omitempty"`
     HandleId        int `json:"handle_id,omitempty"`
+    Plugindata      struct {
+        Plugin string `json:"plugin,omitempty"`
+        Data   struct {
+            Videoroom string `json:"videoroom,omitempty"`
+            Room      int64  `json:"room,omitempty"`
+            Permanent bool   `json:"permanent,omitempty"`
+            Description string `json:"description,omitempty"`
+            Id          int64  `json:"id,omitempty"`
+            PrivateId   int64  `json:"private_id,omitempty"`
+            Publishers  []struct {
+                Id         int64  `json:"id,omitempty"`
+                Display    string `json:"display,omitempty"`
+                AudioCodec string `json:"audio_codec,omitempty"`
+                VideoCodec string `json:"video_codec,omitempty"`
+            } `json:"publishers,omitempty"`
+        } `json:"data,omitempty"`
+    } `json:"plugindata,omitempty"`
+    Jsep            struct {
+        Type string `json:"type,omitempty"`
+        Sdp  string `json:"sdp,omitempty"`
+    } `json:"jsep,omitempty"`
 }
 
 type ServerMsgChan interface {
