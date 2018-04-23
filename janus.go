@@ -15,7 +15,7 @@ type Janus struct {
     *sessTable
     remoteServer    string
     connected       bool
-    sendChan        chan ClientMsg
+    sendChan        chan interface{}
 }
 
 // type Path struct {
@@ -33,7 +33,7 @@ func NewJanus(rs string) *Janus {
     return &Janus{remoteServer: rs,
                   sessTable: newSessTable(),
                   connected: false,
-                  sendChan: make(chan ClientMsg)}
+                  sendChan: make(chan interface{})}
 }
 
 // func Path(sid string, hid string) {
@@ -70,7 +70,7 @@ func (j *Janus) WaitMsg() {
     }()
 
     var msg ServerMsg
-    var sendMsg ClientMsg
+    var sendMsg interface{}
 
 loop:
     for {
@@ -78,6 +78,7 @@ loop:
         case <- closeChan:
             break loop
         case msg = <- read:
+            log.Printf("janus: receive message %+v", msg)
             tid := msg.Transaction
             sid := msg.SessionId
             if sid == 0 {
@@ -116,7 +117,7 @@ loop:
     }
 }
 
-func (j *Janus) Send(msg ClientMsg) {
+func (j *Janus) Send(msg interface{}) {
     j.sendChan <- msg
 }
 
@@ -155,7 +156,7 @@ func (j *Janus) Session(id int) (sess *Session, exist bool) {
 
 func (j *Janus) Handle(sid int, hid int) (*Handle, bool) {
     sess, ok := j.sessTable.sessions[sid];
-    if ok {
+    if !ok {
         return nil, ok
     }
 
