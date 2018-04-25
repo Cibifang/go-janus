@@ -16,8 +16,10 @@ type ClientBody struct {
     Room        int64  `json:"room,omitempty"`
     Ptype       string `json:"ptype,omitempty"`
     Display     string `json:"display,omitempty"`
-    Audio   bool   `json:"audio,omitempty"`
-    Video   bool   `json:"video,omitempty"`
+    Audio       bool   `json:"audio,omitempty"`
+    Video       bool   `json:"video,omitempty"`
+    Audiocodec  string `json:"audiocodec,omitempty"`
+    Videocodec  string `json:"videocodec,omitempty"`
 }
 
 type Jsep struct {
