@@ -5,54 +5,53 @@
 package janus
 
 import (
-    "time"
-    "math/rand"
     "log"
+    "math/rand"
+    "time"
 )
 
-
 type ClientBody struct {
-    Request     string `json:"request,omitempty"`
-    Room        int64  `json:"room,omitempty"`
-    Ptype       string `json:"ptype,omitempty"`
-    Display     string `json:"display,omitempty"`
-    Audio       bool   `json:"audio,omitempty"`
-    Video       bool   `json:"video,omitempty"`
-    Audiocodec  string `json:"audiocodec,omitempty"`
-    Videocodec  string `json:"videocodec,omitempty"`
+    Request    string `json:"request,omitempty"`
+    Room       uint64 `json:"room,omitempty"`
+    Ptype      string `json:"ptype,omitempty"`
+    Display    string `json:"display,omitempty"`
+    Audio      bool   `json:"audio,omitempty"`
+    Video      bool   `json:"video,omitempty"`
+    Audiocodec string `json:"audiocodec,omitempty"`
+    Videocodec string `json:"videocodec,omitempty"`
 }
 
 type Jsep struct {
-    Type    string `json:"type,omitempty"`
-    Sdp     string `json:"sdp,omitempty"`
+    Type string `json:"type,omitempty"`
+    Sdp  string `json:"sdp,omitempty"`
 }
 
 // WebSocket message send to janus.
 type ClientMsg struct {
-    Janus           string `json:"janus,omitempty"`
-    Plugin          string `json:"plugin,omitempty"`
-    Transaction     string `json:"transaction,omitempty"`
-    SessionId       int `json:"session_id,omitempty"`
-    HandleId        int `json:"handle_id,omitempty"`
-    Body            ClientBody `json:"body,omitempty"`
+    Janus       string     `json:"janus,omitempty"`
+    Plugin      string     `json:"plugin,omitempty"`
+    Transaction string     `json:"transaction,omitempty"`
+    SessionId   uint64     `json:"session_id,omitempty"`
+    HandleId    uint64     `json:"handle_id,omitempty"`
+    Body        ClientBody `json:"body,omitempty"`
 }
 
 type ServerData struct {
-    Id              int `json:"id,omitempty"`
+    Id int `json:"id,omitempty"`
 }
 
 type ServerMsg struct {
-    Janus           string `json:"janus,omitempty"`
-    Transaction     string `json:"transaction,omitempty"`
-    Data            ServerData `json:"data,omitempty"`
-    SessionId       int `json:"session_id,omitempty"`
-    HandleId        int `json:"handle_id,omitempty"`
-    Plugindata      struct {
+    Janus       string     `json:"janus,omitempty"`
+    Transaction string     `json:"transaction,omitempty"`
+    Data        ServerData `json:"data,omitempty"`
+    SessionId   int        `json:"session_id,omitempty"`
+    HandleId    int        `json:"handle_id,omitempty"`
+    Plugindata  struct {
         Plugin string `json:"plugin,omitempty"`
         Data   struct {
-            Videoroom string `json:"videoroom,omitempty"`
-            Room      int64  `json:"room,omitempty"`
-            Permanent bool   `json:"permanent,omitempty"`
+            Videoroom   string `json:"videoroom,omitempty"`
+            Room        int64  `json:"room,omitempty"`
+            Permanent   bool   `json:"permanent,omitempty"`
             Description string `json:"description,omitempty"`
             Id          int64  `json:"id,omitempty"`
             PrivateId   int64  `json:"private_id,omitempty"`
@@ -64,14 +63,14 @@ type ServerMsg struct {
             } `json:"publishers,omitempty"`
         } `json:"data,omitempty"`
     } `json:"plugindata,omitempty"`
-    Jsep            struct {
+    Jsep struct {
         Type string `json:"type,omitempty"`
         Sdp  string `json:"sdp,omitempty"`
     } `json:"jsep,omitempty"`
 }
 
 type ServerMsgChan interface {
-    MsgChan(string) ((chan ServerMsg), bool)
+    MsgChan(string) (chan []byte, bool)
 }
 
 const transactionSize = 12
@@ -82,7 +81,6 @@ const (
     letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
     letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
 )
-
 
 func randString(n int) string {
     var randSeed = rand.NewSource(time.Now().UnixNano())
@@ -108,9 +106,9 @@ func newTransaction() string {
     return randString(transactionSize)
 }
 
-func transferServerMsg(tid string, msg ServerMsg, serverMsgChan ServerMsgChan) {
+func transferServerMsg(tid string, msg []byte, serverMsgChan ServerMsgChan) {
     if msgChan, ok := serverMsgChan.MsgChan(tid); ok {
-        log.Printf("Transfer message %+v to channel with tid %s", msg, tid)
+        log.Printf("Transfer message %s to channel with tid %s", msg, tid)
         msgChan <- msg
     } else {
         log.Printf("main: can't find channel with tid %s", tid)

@@ -4,24 +4,20 @@
 package janus
 
 import (
+    "log"
     "net/http"
     "time"
-    "log"
 
     "github.com/gorilla/websocket"
+    "github.com/tidwall/gjson"
 )
 
 type Janus struct {
     *sessTable
-    remoteServer    string
-    connected       bool
-    sendChan        chan interface{}
+    remoteServer string
+    connected    bool
+    sendChan     chan interface{}
 }
-
-// type Path struct {
-//     sessionId   string
-//     handleId    string
-// }
 
 var janusDial = websocket.Dialer{
     Proxy:            http.ProxyFromEnvironment,
@@ -33,12 +29,8 @@ func NewJanus(rs string) *Janus {
     return &Janus{remoteServer: rs,
                   sessTable: newSessTable(),
                   connected: false,
-                  sendChan: make(chan interface{})}
+                  sendChan:  make(chan interface{})}
 }
-
-// func Path(sid string, hid string) {
-//     return Path{sessionId: sid, handleId: hid}
-// }
 
 func (j *Janus) WaitMsg() {
     conn, _, err := janusDial.Dial(j.remoteServer, nil)
@@ -52,16 +44,15 @@ func (j *Janus) WaitMsg() {
     }()
 
     closeChan := make(chan struct{})
-    read := make(chan ServerMsg)
+    read := make(chan []byte)
 
     go func() {
-        var msg ServerMsg
-
         defer func() {
             closeChan <- struct{}{}
         }()
         for {
-            if err := conn.ReadJSON(&msg); err != nil {
+            _, msg, err := conn.ReadMessage();
+            if err != nil {
                 log.Println("c.ReadJSON error: ", err)
                 break
             }
@@ -69,49 +60,43 @@ func (j *Janus) WaitMsg() {
         }
     }()
 
-    var msg ServerMsg
+    var msg []byte
     var sendMsg interface{}
 
 loop:
     for {
         select {
-        case <- closeChan:
+        case <-closeChan:
             break loop
-        case msg = <- read:
-            log.Printf("janus: receive message %+v", msg)
-            tid := msg.Transaction
-            sid := msg.SessionId
-            if sid == 0 {
-                // if msgChan, ok = j.MsgChan(tid); ok {
-                //     msgChan <- msg
-                // } else {
-                //     log.Println("main: can't find channel with tid %s", tid)
-                // }
+        case msg = <-read:
+            log.Printf("janus: receive message %s", msg)
+            tid := gjson.GetBytes(msg, "transaction").String()
+            sid := gjson.GetBytes(msg, "session_id")
+            if !sid.Exists() {
                 transferServerMsg(tid, msg, j)
                 break
             }
 
-            sess, ok := j.Session(sid)
-            if  !ok {
-                log.Printf("janus: can't find session with id %d", sid)
+            sess, ok := j.Session(sid.Uint())
+            if !ok {
+                log.Printf("janus: can't find session with id %d", sid.Uint())
                 break
             }
 
-            hid := msg.HandleId
-            if hid == 0 {
+            hid := gjson.GetBytes(msg, "handle_id")
+            if !hid.Exists() {
                 transferServerMsg(tid, msg, sess)
                 break
             }
 
-            handle, ok := j.Handle(sid, hid)
+            handle, ok := j.Handle(sid.Uint(), hid.Uint())
             if !ok {
-                log.Printf("janus: can't find handle with id %d", hid)
+                log.Printf("janus: can't find handle with id %d", hid.Uint())
                 break
             }
 
-            // if msgChan, ok = sess.MsgChan()
             transferServerMsg(tid, msg, handle)
-        case sendMsg = <- j.sendChan:
+        case sendMsg = <-j.sendChan:
             conn.WriteJSON(sendMsg)
         }
     }
@@ -125,37 +110,21 @@ func (j *Janus) ConnectStatus() bool {
     return j.connected
 }
 
-func (j *Janus) MsgChan(tid string) (msgChan (chan ServerMsg), exist bool) {
+func (j *Janus) MsgChan(tid string) (msgChan chan []byte, exist bool) {
     return j.sessTable.MsgChan(tid)
 }
 
-// func (j *Janus) MainMsg(tid string) ((chan ServerMsg), ok) {
-//     return j.sessTable.msgs[tid]
-// }
-
-// func (j *Janus) SessMsg(sid string, tid string) ((chan ServerMsg), ok) {
-//     if sess, ok := j.sessTable.sessions[sid]; !ok {
-//         return nil, ok
-//     }
-
-//     if _, ok = sess.msgs[tid]; !ok {
-//         return nil, ok
-//     }
-
-//     return sess.msgs[tid]
-// }
-
-func (j *Janus) NewSess(id int) *Session {
+func (j *Janus) NewSess(id uint64) *Session {
     return j.sessTable.newSess(id)
 }
 
-func (j *Janus) Session(id int) (sess *Session, exist bool) {
+func (j *Janus) Session(id uint64) (sess *Session, exist bool) {
     sess, exist = j.sessTable.sessions[id]
     return sess, exist
 }
 
-func (j *Janus) Handle(sid int, hid int) (*Handle, bool) {
-    sess, ok := j.sessTable.sessions[sid];
+func (j *Janus) Handle(sid uint64, hid uint64) (*Handle, bool) {
+    sess, ok := j.sessTable.sessions[sid]
     if !ok {
         return nil, ok
     }

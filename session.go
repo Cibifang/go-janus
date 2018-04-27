@@ -4,24 +4,22 @@
 
 package janus
 
-import (
-)
+import ()
 
 type Session struct {
-    id          int
-    handles     map[int]*Handle
-    msgs        map[string](chan ServerMsg)
+    id      uint64
+    handles map[uint64]*Handle
+    msgs    map[string](chan []byte)
 }
 
-func newSess(id int) *Session {
+func newSess(id uint64) *Session {
     return &Session{id: id,
-                    handles: make(map[int]*Handle),
-                    msgs: make(map[string](chan ServerMsg)),}
+                    handles: make(map[uint64]*Handle),
+                    msgs: make(map[string](chan []byte))}
 }
-
 
 /* because now we just use one plugin, so don't create plugin.go */
-func (s *Session) Attach(id int) (*Handle) {
+func (s *Session) Attach(id uint64) *Handle {
     s.handles[id] = newHandle(id)
     return s.handles[id]
 }
@@ -35,11 +33,11 @@ func (s *Session) NewTransaction() string {
         _, exist = s.msgs[tid]
     }
 
-    s.msgs[tid] = make(chan ServerMsg, 1)
+    s.msgs[tid] = make(chan []byte, 1)
     return tid
 }
 
-func (s *Session) MsgChan(tid string) (msgChan (chan ServerMsg), exist bool) {
+func (s *Session) MsgChan(tid string) (msgChan chan []byte, exist bool) {
     msgChan, exist = s.msgs[tid]
     return msgChan, exist
 }

@@ -4,20 +4,19 @@
 
 package janus
 
-import (
-)
+import ()
 
 type sessTable struct {
-    sessions    map[int]*Session
-    msgs        map[string](chan ServerMsg)
+    sessions map[uint64]*Session
+    msgs     map[string](chan []byte)
 }
 
 func newSessTable() *sessTable {
-    return &sessTable{sessions: make(map[int]*Session),
-                      msgs: make(map[string](chan ServerMsg))}
+    return &sessTable{sessions: make(map[uint64]*Session),
+                      msgs: make(map[string](chan []byte))}
 }
 
-func (st *sessTable) newSess(id int) *Session {
+func (st *sessTable) newSess(id uint64) *Session {
     st.sessions[id] = newSess(id)
 
     return st.sessions[id]
@@ -32,11 +31,11 @@ func (st *sessTable) newTransaction() string {
         _, exist = st.msgs[tid]
     }
 
-    st.msgs[tid] = make(chan ServerMsg, 1)
+    st.msgs[tid] = make(chan []byte, 1)
     return tid
 }
 
-func (st *sessTable) MsgChan(tid string) (msgChan (chan ServerMsg), exist bool) {
+func (st *sessTable) MsgChan(tid string) (msgChan chan []byte, exist bool) {
     msgChan, exist = st.msgs[tid]
     return msgChan, exist
 }
