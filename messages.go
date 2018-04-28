@@ -14,6 +14,8 @@ type ClientBody struct {
     Request    string `json:"request,omitempty"`
     Room       uint64 `json:"room,omitempty"`
     Ptype      string `json:"ptype,omitempty"`
+    Feed       uint64 `json:"feed,omitempty"`
+    PrivateId  uint64 `json:"private_id,omitempty"`
     Display    string `json:"display,omitempty"`
     Audio      bool   `json:"audio,omitempty"`
     Video      bool   `json:"video,omitempty"`
