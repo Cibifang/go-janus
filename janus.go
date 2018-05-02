@@ -51,7 +51,7 @@ func (j *Janus) WaitMsg() {
             closeChan <- struct{}{}
         }()
         for {
-            _, msg, err := conn.ReadMessage();
+            _, msg, err := conn.ReadMessage()
             if err != nil {
                 log.Println("c.ReadJSON error: ", err)
                 break

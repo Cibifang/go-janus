@@ -4,9 +4,12 @@
 
 package janus
 
-import ()
+import (
+    "sync"
+)
 
 type sessTable struct {
+    lock     sync.Mutex
     sessions map[uint64]*Session
     msgs     map[string](chan []byte)
 }
@@ -25,6 +28,8 @@ func (st *sessTable) newSess(id uint64) *Session {
 func (st *sessTable) newTransaction() string {
     tid := newTransaction()
 
+    st.lock.Lock()
+    defer st.lock.Unlock()
     _, exist := st.msgs[tid]
     for exist {
         tid = newTransaction()

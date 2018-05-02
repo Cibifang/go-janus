@@ -4,9 +4,12 @@
 
 package janus
 
-import ()
+import (
+    "sync"
+)
 
 type Session struct {
+    lock    sync.Mutex
     id      uint64
     handles map[uint64]*Handle
     msgs    map[string](chan []byte)
@@ -15,7 +18,7 @@ type Session struct {
 func newSess(id uint64) *Session {
     return &Session{id: id,
                     handles: make(map[uint64]*Handle),
-                    msgs: make(map[string](chan []byte))}
+                    msgs:    make(map[string](chan []byte))}
 }
 
 /* because now we just use one plugin, so don't create plugin.go */
@@ -27,6 +30,8 @@ func (s *Session) Attach(id uint64) *Handle {
 func (s *Session) NewTransaction() string {
     tid := newTransaction()
 
+    s.lock.Lock()
+    defer s.lock.Unlock()
     _, exist := s.msgs[tid]
     for exist {
         tid = newTransaction()

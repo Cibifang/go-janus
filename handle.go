@@ -4,9 +4,12 @@
 
 package janus
 
-import ()
+import (
+    "sync"
+)
 
 type Handle struct {
+    lock sync.Mutex
     id   uint64
     msgs map[string](chan []byte)
 }
@@ -19,6 +22,8 @@ func newHandle(id uint64) *Handle {
 func (h *Handle) NewTransaction() string {
     tid := newTransaction()
 
+    h.lock.Lock()
+    defer h.lock.Unlock()
     _, exist := h.msgs[tid]
     for exist {
         tid = newTransaction()
