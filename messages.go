@@ -110,9 +110,8 @@ func newTransaction() string {
 
 func transferServerMsg(tid string, msg []byte, serverMsgChan ServerMsgChan) {
     if msgChan, ok := serverMsgChan.MsgChan(tid); ok {
-        log.Printf("Transfer message %s to channel with tid %s", msg, tid)
         msgChan <- msg
     } else {
-        log.Printf("main: can't find channel with tid %s", tid)
+        log.Printf("janus: can't find channel with tid `%s`", tid)
     }
 }

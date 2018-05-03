@@ -69,7 +69,7 @@ loop:
         case <-closeChan:
             break loop
         case msg = <-read:
-            log.Printf("janus: receive message %s", msg)
+            log.Printf("janus: receive message `%s`", msg)
             tid := gjson.GetBytes(msg, "transaction").String()
             sid := gjson.GetBytes(msg, "session_id")
             if !sid.Exists() {
@@ -79,7 +79,7 @@ loop:
 
             sess, ok := j.Session(sid.Uint())
             if !ok {
-                log.Printf("janus: can't find session with id %d", sid.Uint())
+                log.Printf("janus: can't find session with id `%d`", sid.Uint())
                 break
             }
 
@@ -91,12 +91,13 @@ loop:
 
             handle, ok := j.Handle(sid.Uint(), hid.Uint())
             if !ok {
-                log.Printf("janus: can't find handle with id %d", hid.Uint())
+                log.Printf("janus: can't find handle with id `%d`", hid.Uint())
                 break
             }
 
             transferServerMsg(tid, msg, handle)
         case sendMsg = <-j.sendChan:
+            log.Printf("janus: send message `%+v`", sendMsg)
             conn.WriteJSON(sendMsg)
         }
     }
