@@ -114,6 +114,10 @@ func (j *Janus) MsgChan(tid string) (msgChan chan []byte, exist bool) {
     return j.sessTable.MsgChan(tid)
 }
 
+func (j *Janus) DefaultMsgChan() (chan []byte) {
+    return j.sessTable.DefaultMsgChan()
+}
+
 func (j *Janus) NewSess(id uint64) *Session {
     return j.sessTable.newSess(id)
 }

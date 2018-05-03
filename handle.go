@@ -38,3 +38,14 @@ func (h *Handle) MsgChan(tid string) (msgChan chan []byte, exist bool) {
     msgChan, exist = h.msgs[tid]
     return msgChan, exist
 }
+
+func (h *Handle) DefaultMsgChan() (chan []byte) {
+    h.lock.Lock()
+    defer h.lock.Unlock()
+    _, exist := h.msgs[""]
+    if !exist {
+        h.msgs[""] = make(chan []byte, 1)
+    }
+
+    return h.msgs[""]
+}

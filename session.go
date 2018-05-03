@@ -46,3 +46,14 @@ func (s *Session) MsgChan(tid string) (msgChan chan []byte, exist bool) {
     msgChan, exist = s.msgs[tid]
     return msgChan, exist
 }
+
+func (s *Session) DefaultMsgChan() (chan []byte) {
+    s.lock.Lock()
+    defer s.lock.Unlock()
+    _, exist := s.msgs[""]
+    if !exist {
+        s.msgs[""] = make(chan []byte, 1)
+    }
+
+    return s.msgs[""]
+}

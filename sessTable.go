@@ -40,6 +40,17 @@ func (st *sessTable) newTransaction() string {
     return tid
 }
 
+func (st *sessTable) DefaultMsgChan() (chan []byte) {
+    st.lock.Lock()
+    defer st.lock.Unlock()
+    _, exist := st.msgs[""]
+    if !exist {
+        st.msgs[""] = make(chan []byte, 1)
+    }
+
+    return st.msgs[""]
+}
+
 func (st *sessTable) MsgChan(tid string) (msgChan chan []byte, exist bool) {
     msgChan, exist = st.msgs[tid]
     return msgChan, exist
