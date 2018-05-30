@@ -5,55 +5,56 @@
 package janus
 
 import (
-    "sync"
+	"sync"
 )
 
 type Session struct {
-    lock    sync.Mutex
-    id      uint64
-    handles map[uint64]*Handle
-    msgs    map[string](chan []byte)
+	lock    sync.Mutex
+	id      uint64
+	handles map[uint64]*Handle
+	msgs    map[string](chan []byte)
 }
 
 func newSess(id uint64) *Session {
-    return &Session{id: id,
-                    handles: make(map[uint64]*Handle),
-                    msgs:    make(map[string](chan []byte))}
+	return &Session{
+		id:      id,
+		handles: make(map[uint64]*Handle),
+		msgs:    make(map[string](chan []byte))}
 }
 
 /* because now we just use one plugin, so don't create plugin.go */
 func (s *Session) Attach(id uint64) *Handle {
-    s.handles[id] = newHandle(id)
-    return s.handles[id]
+	s.handles[id] = newHandle(id)
+	return s.handles[id]
 }
 
 func (s *Session) NewTransaction() string {
-    tid := newTransaction()
+	tid := newTransaction()
 
-    s.lock.Lock()
-    defer s.lock.Unlock()
-    _, exist := s.msgs[tid]
-    for exist {
-        tid = newTransaction()
-        _, exist = s.msgs[tid]
-    }
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	_, exist := s.msgs[tid]
+	for exist {
+		tid = newTransaction()
+		_, exist = s.msgs[tid]
+	}
 
-    s.msgs[tid] = make(chan []byte, 1)
-    return tid
+	s.msgs[tid] = make(chan []byte, 1)
+	return tid
 }
 
 func (s *Session) MsgChan(tid string) (msgChan chan []byte, exist bool) {
-    msgChan, exist = s.msgs[tid]
-    return msgChan, exist
+	msgChan, exist = s.msgs[tid]
+	return msgChan, exist
 }
 
-func (s *Session) DefaultMsgChan() (chan []byte) {
-    s.lock.Lock()
-    defer s.lock.Unlock()
-    _, exist := s.msgs[""]
-    if !exist {
-        s.msgs[""] = make(chan []byte, 1)
-    }
+func (s *Session) DefaultMsgChan() chan []byte {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	_, exist := s.msgs[""]
+	if !exist {
+		s.msgs[""] = make(chan []byte, 1)
+	}
 
-    return s.msgs[""]
+	return s.msgs[""]
 }

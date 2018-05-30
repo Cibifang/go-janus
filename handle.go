@@ -5,47 +5,48 @@
 package janus
 
 import (
-    "sync"
+	"sync"
 )
 
 type Handle struct {
-    lock sync.Mutex
-    id   uint64
-    msgs map[string](chan []byte)
+	lock sync.Mutex
+	id   uint64
+	msgs map[string](chan []byte)
 }
 
 func newHandle(id uint64) *Handle {
-    return &Handle{id: id,
-        msgs: make(map[string](chan []byte))}
+	return &Handle{
+		id:   id,
+		msgs: make(map[string](chan []byte))}
 }
 
 func (h *Handle) NewTransaction() string {
-    tid := newTransaction()
+	tid := newTransaction()
 
-    h.lock.Lock()
-    defer h.lock.Unlock()
-    _, exist := h.msgs[tid]
-    for exist {
-        tid = newTransaction()
-        _, exist = h.msgs[tid]
-    }
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	_, exist := h.msgs[tid]
+	for exist {
+		tid = newTransaction()
+		_, exist = h.msgs[tid]
+	}
 
-    h.msgs[tid] = make(chan []byte, 1)
-    return tid
+	h.msgs[tid] = make(chan []byte, 1)
+	return tid
 }
 
 func (h *Handle) MsgChan(tid string) (msgChan chan []byte, exist bool) {
-    msgChan, exist = h.msgs[tid]
-    return msgChan, exist
+	msgChan, exist = h.msgs[tid]
+	return msgChan, exist
 }
 
-func (h *Handle) DefaultMsgChan() (chan []byte) {
-    h.lock.Lock()
-    defer h.lock.Unlock()
-    _, exist := h.msgs[""]
-    if !exist {
-        h.msgs[""] = make(chan []byte, 1)
-    }
+func (h *Handle) DefaultMsgChan() chan []byte {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	_, exist := h.msgs[""]
+	if !exist {
+		h.msgs[""] = make(chan []byte, 1)
+	}
 
-    return h.msgs[""]
+	return h.msgs[""]
 }
