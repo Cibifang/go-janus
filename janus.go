@@ -15,7 +15,7 @@ import (
 type Janus struct {
 	*sessTable
 	remoteServer string
-	connected    bool
+	conn         *websocket.Conn
 	sendChan     chan interface{}
 }
 
@@ -26,35 +26,38 @@ var janusDial = websocket.Dialer{
 }
 
 func NewJanus(rs string) *Janus {
-	return &Janus{
+	janus := &Janus{
 		remoteServer: rs,
 		sessTable:    newSessTable(),
-		connected:    false,
 		sendChan:     make(chan interface{})}
-}
 
-func (j *Janus) WaitMsg() {
-	conn, _, err := janusDial.Dial(j.remoteServer, nil)
-	if err != nil {
-		return
+	if err := janus.connect(); err != nil {
+		log.Printf(
+			"NewJanus: connect to server `%s` failed, err : `%+v`", rs, err)
+		return nil
 	}
 
-	j.connected = true
-	defer func() {
-		j.connected = false
-	}()
+	go janus.handleMsg()
+	return janus
+}
 
-	closeChan := make(chan struct{})
+func (j *Janus) connect() error {
+	conn, _, err := janusDial.Dial(j.remoteServer, nil)
+	j.conn = conn
+	return err
+}
+
+func (j *Janus) handleMsg() {
+	readErr := make(chan struct{})
 	read := make(chan []byte)
 
 	go func() {
-		defer func() {
-			closeChan <- struct{}{}
-		}()
+		defer close(readErr)
+
 		for {
-			_, msg, err := conn.ReadMessage()
+			_, msg, err := j.conn.ReadMessage()
 			if err != nil {
-				log.Println("c.ReadJSON error: ", err)
+				log.Println("handleMsg: c.ReadJSON error: ", err)
 				break
 			}
 			read <- msg
@@ -67,10 +70,10 @@ func (j *Janus) WaitMsg() {
 loop:
 	for {
 		select {
-		case <-closeChan:
+		case <-readErr:
 			break loop
 		case msg = <-read:
-			log.Printf("janus: receive message `%s`", msg)
+			log.Printf("handleMsg: receive message `%s`", msg)
 			tid := gjson.GetBytes(msg, "transaction").String()
 			sid := gjson.GetBytes(msg, "session_id")
 			if !sid.Exists() {
@@ -80,7 +83,8 @@ loop:
 
 			sess, ok := j.Session(sid.Uint())
 			if !ok {
-				log.Printf("janus: can't find session with id `%d`", sid.Uint())
+				log.Printf(
+					"handleMsg: can't find session with id `%d`", sid.Uint())
 				break
 			}
 
@@ -92,24 +96,21 @@ loop:
 
 			handle, ok := j.Handle(sid.Uint(), hid.Uint())
 			if !ok {
-				log.Printf("janus: can't find handle with id `%d`", hid.Uint())
+				log.Printf(
+					"handleMsg: can't find handle with id `%d`", hid.Uint())
 				break
 			}
 
 			transferServerMsg(tid, msg, handle)
 		case sendMsg = <-j.sendChan:
-			log.Printf("janus: send message `%+v`", sendMsg)
-			conn.WriteJSON(sendMsg)
+			log.Printf("handleMsg: send message `%+v`", sendMsg)
+			j.conn.WriteJSON(sendMsg)
 		}
 	}
 }
 
 func (j *Janus) Send(msg interface{}) {
 	j.sendChan <- msg
-}
-
-func (j *Janus) ConnectStatus() bool {
-	return j.connected
 }
 
 func (j *Janus) MsgChan(tid string) (msgChan chan []byte, exist bool) {
