@@ -36,6 +36,8 @@ func (h *Handle) NewTransaction() string {
 }
 
 func (h *Handle) MsgChan(tid string) (msgChan chan []byte, exist bool) {
+	h.lock.Lock()
+	defer h.lock.Unlock()
 	msgChan, exist = h.msgs[tid]
 	return msgChan, exist
 }

@@ -53,6 +53,8 @@ func (st *sessTable) DefaultMsgChan() chan []byte {
 }
 
 func (st *sessTable) MsgChan(tid string) (msgChan chan []byte, exist bool) {
+	st.lock.Lock()
+	defer st.lock.Unlock()
 	msgChan, exist = st.msgs[tid]
 	return msgChan, exist
 }

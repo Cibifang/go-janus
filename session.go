@@ -44,6 +44,8 @@ func (s *Session) NewTransaction() string {
 }
 
 func (s *Session) MsgChan(tid string) (msgChan chan []byte, exist bool) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	msgChan, exist = s.msgs[tid]
 	return msgChan, exist
 }
