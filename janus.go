@@ -22,7 +22,7 @@ type Janus struct {
 
 var janusDial = websocket.Dialer{
 	Proxy:            http.ProxyFromEnvironment,
-	HandshakeTimeout: 45 * time.Second,
+	HandshakeTimeout: 3 * time.Second,
 	Subprotocols:     []string{"janus-protocol"},
 }
 
