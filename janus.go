@@ -17,6 +17,7 @@ type Janus struct {
 	remoteServer string
 	conn         *websocket.Conn
 	sendChan     chan interface{}
+	close        bool
 }
 
 var janusDial = websocket.Dialer{
@@ -29,7 +30,9 @@ func NewJanus(rs string) *Janus {
 	janus := &Janus{
 		remoteServer: rs,
 		sessTable:    newSessTable(),
-		sendChan:     make(chan interface{})}
+		sendChan:     make(chan interface{}),
+		close:        true,
+	}
 
 	if err := janus.connect(); err != nil {
 		log.Printf(
@@ -37,8 +40,17 @@ func NewJanus(rs string) *Janus {
 		return nil
 	}
 
+	janus.close = false
 	go janus.handleMsg()
 	return janus
+}
+
+func (j *Janus) Close() {
+	if j.close {
+		return
+	}
+	j.close = true
+	j.conn.Close()
 }
 
 func (j *Janus) connect() error {
@@ -52,6 +64,7 @@ func (j *Janus) handleMsg() {
 	read := make(chan []byte)
 
 	go func() {
+		defer j.Close()
 		defer close(readErr)
 
 		for {
