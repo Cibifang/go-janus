@@ -10,6 +10,7 @@ import (
 
 type Session struct {
 	lock    sync.Mutex
+	hLock   sync.Mutex
 	id      uint64
 	handles map[uint64]*Handle
 	msgs    map[string](chan []byte)
@@ -24,8 +25,11 @@ func newSess(id uint64) *Session {
 
 /* because now we just use one plugin, so don't create plugin.go */
 func (s *Session) Attach(id uint64) *Handle {
-	s.handles[id] = newHandle(id)
-	return s.handles[id]
+	s.hLock.Lock()
+	defer s.hLock.Unlock()
+	handle := newHandle(id)
+	s.handles[id] = handle
+	return handle
 }
 
 func (s *Session) NewTransaction() string {
